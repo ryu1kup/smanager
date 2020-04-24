@@ -3,6 +3,8 @@
 import time
 import glob
 import subprocess
+
+import numpy as np
 import pandas as pd
 
 
@@ -102,13 +104,13 @@ class smanager():
         else:
             return [id for id, name in zip(self.df['id'], self.df['name']) if pattern in name]
 
-    def submit(self, project_id, limit=100):
-        jobs = glob.glob('../mc{}/work/scripts/sbatch*.sh'.format(project_id))
-        for job in jobs:
+    def submit(self, project_id, start=0, stop=100, limit=50):
+        for i in np.arange(start=start, stop=stop):
             self.update()
+            job = '../mc{id}/work/scripts/sbatch{id}_{seed}.sh'.format(id=project_id, seed=i)
             n = self.count_job()
             if n > limit:
-                print('Currently {} batches are submitted. Please wait for 1 min.')
+                print('Currently {} batches are submitted. Please wait for 1 min.'.format(n))
                 time.sleep(60)
             else:
                 subprocess.run(['sbatch', job])
@@ -116,6 +118,12 @@ class smanager():
     def cancel_all(self):
         self.update()
         ids = self.get_id()
+        for id in ids:
+            subprocess.run(['scancel', id])
+
+    def cancel(self, pattern):
+        self.update()
+        ids = self.get_id(pattern=pattern)
         for id in ids:
             subprocess.run(['scancel', id])
 
